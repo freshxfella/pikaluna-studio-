@@ -123,6 +123,26 @@ export async function suggestCopyForDuration(
   return generateCopy(prompt, model, proxyPath);
 }
 
+/* ---------- popravi besedilo po navodilu (AI) ---------- */
+
+// Vzame obstoječi rezultat + navodilo in vrne izboljšano besedilo.
+export async function refineText(
+  current: string,
+  instruction: string,
+  model: string,
+  proxyPath?: string
+): Promise<string> {
+  const prompt = [
+    "Popravi spodnje besedilo po navodilu. Vrni samo popravljeno besedilo, brez razlage, brez markdowna.",
+    "",
+    "Navodilo: " + instruction,
+    "",
+    "Besedilo:",
+    current,
+  ].join("\n");
+  return generateCopy(prompt, model, proxyPath);
+}
+
 /* ---------- montaža (Creatomate) ---------- */
 
 export interface MontageJob {

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { generateCopy } from "@/lib/api";
+import { generateCopy, refineText } from "@/lib/api";
 import { useSettings, Lang } from "@/components/SettingsProvider";
 import { usePersistentState } from "@/lib/usePersistentState";
+import StageActions from "@/components/StageActions";
 import { StageStatus } from "@/lib/stages";
 import { CONCEPT_KEY } from "@/components/stages/ConceptStage";
 
@@ -109,6 +110,30 @@ export default function CopyStage({ onStatus }: { onStatus: (s: StageStatus) => 
     } catch {}
   }
 
+  function clearResults() {
+    setResults([]);
+    onStatus("empty");
+  }
+
+  async function refineAll(instruction: string) {
+    if (!results.length) return;
+    setBusy(true);
+    onStatus("busy");
+    try {
+      const out: Result[] = [];
+      for (const r of results) {
+        const improved = await refineText(r.text, instruction, settings.model, settings.proxyPath);
+        out.push({ lang: r.lang, text: improved });
+        setResults([...out]);
+      }
+      onStatus("done");
+    } catch (err: any) {
+      setError(err.message || "Popravek ni uspel.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const hasConcept = typeof window !== "undefined" && !!readConcept();
 
   return (
@@ -174,6 +199,16 @@ export default function CopyStage({ onStatus }: { onStatus: (s: StageStatus) => 
       </div>
 
       {error && <div className="vstatus vstatus--err" style={{ maxWidth: 720 }}>{error}</div>}
+
+      {results.length > 0 && (
+        <StageActions
+          busy={busy}
+          onRepeat={run}
+          onClear={clearResults}
+          onRefine={refineAll}
+          refineHint="npr. skrajšaj vse, bolj prodajno, dodaj nujnost"
+        />
+      )}
 
       <div className="copy-grid">
         {results.map((r) => (

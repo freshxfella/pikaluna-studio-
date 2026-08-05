@@ -6,6 +6,7 @@ import { StageStatus } from "@/lib/stages";
 import { usePersistentState } from "@/lib/usePersistentState";
 import { useSettings } from "@/components/SettingsProvider";
 import { downloadRemote } from "@/lib/download";
+import StageActions from "@/components/StageActions";
 import { CONCEPT_KEY } from "@/components/stages/ConceptStage";
 import { IMAGES_KEY } from "@/components/stages/ImageStage";
 import { useRef } from "react";
@@ -159,6 +160,17 @@ export default function VideoStage({ onStatus }: { onStatus: (s: StageStatus) =>
           </span>
         )}
       </div>
+
+      <StageActions
+        busy={rendering}
+        onRepeat={start}
+        onRefresh={loadFromImages}
+        onClear={() => {
+          setScenes(EMPTY_SCENES);
+          setJob(null);
+          onStatus("empty");
+        }}
+      />
 
       {error && <div className="vstatus vstatus--err" style={{ maxWidth: 920 }}>{error}</div>}
 

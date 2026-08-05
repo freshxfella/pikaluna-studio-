@@ -5,6 +5,7 @@ import { generateImage } from "@/lib/api";
 import { useSettings } from "@/components/SettingsProvider";
 import { usePersistentState } from "@/lib/usePersistentState";
 import { downloadDataUrl } from "@/lib/download";
+import StageActions from "@/components/StageActions";
 import { StageStatus } from "@/lib/stages";
 
 // Slike, ki jih Video stopnja prebere kot prizore (data-URL-i).
@@ -106,6 +107,18 @@ export default function ImageStage({ onStatus }: { onStatus: (s: StageStatus) =>
           {busy ? "Ustvarjam …" : "Ustvari slike"}
         </button>
       </div>
+
+      <StageActions
+        busy={busy}
+        onRepeat={run}
+        onClear={() => {
+          setScenes(EMPTY);
+          try {
+            localStorage.removeItem(IMAGES_KEY);
+          } catch {}
+          onStatus("empty");
+        }}
+      />
 
       {error && <div className="vstatus vstatus--err" style={{ maxWidth: 920 }}>{error}</div>}
 

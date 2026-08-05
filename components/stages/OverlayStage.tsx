@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { StageStatus } from "@/lib/stages";
 import { usePersistentState } from "@/lib/usePersistentState";
+import StageActions from "@/components/StageActions";
 import { CONCEPT_KEY } from "@/components/stages/ConceptStage";
 
 // Overlay elementi se shranijo; Montaža jih kasneje pošlje Creatomatu
@@ -120,6 +121,18 @@ export default function OverlayStage({ onStatus }: { onStatus: (s: StageStatus) 
         </button>
         {saved && <span className="pill pill--done">shranjeno ✓</span>}
       </div>
+
+      <StageActions
+        onRefresh={loadSuggestions}
+        onClear={() => {
+          setItems([newItem({ text: "-65%", blink: true })]);
+          try {
+            localStorage.removeItem(OVERLAY_KEY);
+          } catch {}
+          onStatus("empty");
+          setSaved(false);
+        }}
+      />
 
       {!hasConcept() && (
         <div className="vstatus" style={{ maxWidth: 920 }}>

@@ -5,6 +5,7 @@ import { transcribeAudio, TranscriptSegment } from "@/lib/api";
 import { useSettings } from "@/components/SettingsProvider";
 import { usePersistentState } from "@/lib/usePersistentState";
 import { buildSrt, downloadText } from "@/lib/download";
+import StageActions from "@/components/StageActions";
 import { StageStatus } from "@/lib/stages";
 import { VOICE_AUDIO_KEY } from "@/components/stages/VoiceStage";
 
@@ -150,6 +151,19 @@ export default function SubtitleStage({ onStatus }: { onStatus: (s: StageStatus)
           Prenesi .srt
         </button>
       </div>
+
+      <StageActions
+        busy={busy}
+        onRepeat={transcribe}
+        onRefresh={transcribe}
+        onClear={() => {
+          setLines([]);
+          try {
+            localStorage.removeItem(SUBS_KEY);
+          } catch {}
+          onStatus("empty");
+        }}
+      />
 
       <div className={`vstatus${msg.kind ? ` vstatus--${msg.kind}` : ""}`} style={{ maxWidth: 920 }}>
         {msg.text}

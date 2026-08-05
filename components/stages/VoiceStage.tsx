@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { callProxy } from "@/lib/api";
 import { useSettings } from "@/components/SettingsProvider";
 import { StageStatus } from "@/lib/stages";
+import StageActions from "@/components/StageActions";
 import { VOICE_TEXT_KEY } from "@/components/stages/CopyStage";
 
 // Zadnji generirani govor (data-URL mp3) — Podnapisi ga transkribirajo.
@@ -94,6 +95,11 @@ export default function VoiceStage({ onStatus }: { onStatus: (s: StageStatus) =>
     update({ voiceId: selected });
     onStatus(selected ? "done" : "empty");
   }, [selected]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Samodejno naloži glasove ob prvem odprtju.
+  useEffect(() => {
+    loadVoices();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setPref = (patch: Partial<VoicePrefs>) => setPrefs((p) => ({ ...p, ...patch }));
 
@@ -281,6 +287,18 @@ export default function VoiceStage({ onStatus }: { onStatus: (s: StageStatus) =>
           svojega in ustvari govor za oglas.
         </p>
       </header>
+
+      <StageActions
+        busy={busyVoices || generating}
+        onRefresh={loadVoices}
+        onClear={() => {
+          setSpeechUrl("");
+          setText("");
+          try {
+            localStorage.removeItem("pikaluna_studio_voice_audio");
+          } catch {}
+        }}
+      />
 
       <div className="vcols">
         {/* LEFT — voice choice + tuning */}

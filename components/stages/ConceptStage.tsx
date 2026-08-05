@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { generateCopy } from "@/lib/api";
+import { generateCopy, refineText } from "@/lib/api";
 import { useSettings } from "@/components/SettingsProvider";
 import { usePersistentState } from "@/lib/usePersistentState";
+import StageActions from "@/components/StageActions";
 import { StageStatus } from "@/lib/stages";
 
 // Koncept se shrani, da ga Besedilo in Overlay lahko uporabita kot kontekst.
@@ -87,6 +88,26 @@ export default function ConceptStage({ onStatus }: { onStatus: (s: StageStatus) 
     } catch {}
   }
 
+  function clearResult() {
+    setResult("");
+    onStatus("empty");
+  }
+
+  async function refine(instruction: string) {
+    if (!result.trim()) return;
+    setBusy(true);
+    onStatus("busy");
+    try {
+      const improved = await refineText(result, instruction, settings.model, settings.proxyPath);
+      setResult(improved);
+      onStatus("done");
+    } catch (err: any) {
+      setError(err.message || "Popravek ni uspel.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <section className="panel">
       <header className="panel__head">
@@ -146,6 +167,17 @@ export default function ConceptStage({ onStatus }: { onStatus: (s: StageStatus) 
 
       {error && <div className="vstatus vstatus--err" style={{ maxWidth: 720 }}>{error}</div>}
 
+      {result && (
+        <>
+          <StageActions
+            busy={busy}
+            onRepeat={run}
+            onClear={clearResult}
+            onRefine={refine}
+            refineHint="npr. bolj energično, skrajšaj, dodaj poudarek na udobje"
+          />
+        </>
+      )}
       {result && (
         <div className="copy-card" style={{ maxWidth: 720, marginTop: 18 }}>
           <div className="copy-card__head">
