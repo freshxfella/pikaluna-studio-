@@ -4,6 +4,7 @@ import { useState } from "react";
 import { generateImage } from "@/lib/api";
 import { useSettings } from "@/components/SettingsProvider";
 import { usePersistentState } from "@/lib/usePersistentState";
+import { downloadDataUrl } from "@/lib/download";
 import { StageStatus } from "@/lib/stages";
 
 // Slike, ki jih Video stopnja prebere kot prizore (data-URL-i).
@@ -30,6 +31,24 @@ export default function ImageStage({ onStatus }: { onStatus: (s: StageStatus) =>
 
   const patch = (i: number, p: Partial<SceneImg>) =>
     setScenes((s) => s.map((sc, idx) => (idx === i ? { ...sc, ...p } : sc)));
+
+  // Nalaganje lastne slike z računalnika v prizor (namesto AI generiranja).
+  function uploadImage(i: number, file: File) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const url = String(reader.result || "");
+      setScenes((s) => {
+        const next = s.map((sc, idx) => (idx === i ? { ...sc, url, status: "done" as const } : sc));
+        const done = next.filter((x) => x.url).map((x) => ({ imageUrl: x.url, prompt: x.prompt }));
+        try {
+          localStorage.setItem(IMAGES_KEY, JSON.stringify(done));
+        } catch {}
+        return next;
+      });
+      onStatus("done");
+    };
+    reader.readAsDataURL(file);
+  }
 
   function persist(list: SceneImg[]) {
     const done = list.filter((s) => s.url).map((s) => ({ imageUrl: s.url, prompt: s.prompt }));
@@ -121,6 +140,26 @@ export default function ImageStage({ onStatus }: { onStatus: (s: StageStatus) =>
                 {sc.error && <div className="vstatus vstatus--err">{sc.error}</div>}
               </>
             )}
+
+            <div className="card-actions">
+              <label className="btn btn--ghost btn--file">
+                Naloži svojo
+                <input
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={(e) => e.target.files?.[0] && uploadImage(i, e.target.files[0])}
+                />
+              </label>
+              {sc.url && (
+                <button
+                  className="btn btn--ghost"
+                  onClick={() => downloadDataUrl(sc.url, `prizor-${i + 1}.png`)}
+                >
+                  Prenesi
+                </button>
+              )}
+            </div>
           </div>
         ))}
       </div>

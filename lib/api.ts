@@ -102,6 +102,27 @@ export async function transcribeAudio(
   }));
 }
 
+/* ---------- predlog teksta glede na dolžino videa ---------- */
+
+// Na podlagi trajanja (sekunde) predlaga tekst primerne dolžine.
+// Ne "razume" videa — prilagodi obseg besedila času.
+export async function suggestCopyForDuration(
+  seconds: number,
+  context: string,
+  model: string,
+  proxyPath?: string
+): Promise<string> {
+  const prompt = [
+    `Za video oglas dolžine ${Math.round(seconds)} sekund predlagaj besedilo, ki se časovno prilega.`,
+    "Krajši video = manj besed. Vrni 1–4 kratke vrstice, vsako v svoji vrsti, brez oznak.",
+    context ? "Kontekst izdelka/koncepta:\n" + context : "",
+    "Piši naravno, brez markdowna.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+  return generateCopy(prompt, model, proxyPath);
+}
+
 /* ---------- async video pipeline (Kling via fal) ---------- */
 
 export interface RenderScene {

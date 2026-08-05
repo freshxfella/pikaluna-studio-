@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { startRender, pollRender, RenderJob } from "@/lib/api";
+import { startRender, pollRender, RenderJob, suggestCopyForDuration } from "@/lib/api";
 import { StageStatus } from "@/lib/stages";
 import { usePersistentState } from "@/lib/usePersistentState";
+import { useSettings } from "@/components/SettingsProvider";
+import { downloadRemote } from "@/lib/download";
+import { CONCEPT_KEY } from "@/components/stages/ConceptStage";
 import { IMAGES_KEY } from "@/components/stages/ImageStage";
 import { useRef } from "react";
 
@@ -19,12 +22,53 @@ const EMPTY_SCENES: SceneInput[] = [
 ];
 
 export default function VideoStage({ onStatus }: { onStatus: (s: StageStatus) => void }) {
+  const { settings } = useSettings();
   const [scenes, setScenes] = usePersistentState<SceneInput[]>("video_scenes", EMPTY_SCENES);
   const [duration, setDuration] = usePersistentState<"5" | "10">("video_duration", "5");
   const [rendering, setRendering] = useState(false);
   const [job, setJob] = useState<RenderJob | null>(null);
   const [error, setError] = useState("");
   const jobIdRef = useRef<string>("");
+
+  // Lasten video (naložen) + izmerjena dolžina + predlagani tekst po dolžini.
+  const [ownVideo, setOwnVideo] = usePersistentState<string>("video_own", "");
+  const [ownSeconds, setOwnSeconds] = usePersistentState<number>("video_own_seconds", 0);
+  const [suggested, setSuggested] = usePersistentState<string>("video_suggested_text", "");
+  const [suggesting, setSuggesting] = useState(false);
+
+  function onPickVideo(file: File) {
+    const url = URL.createObjectURL(file);
+    // izmeri dolžino
+    const v = document.createElement("video");
+    v.preload = "metadata";
+    v.onloadedmetadata = () => {
+      setOwnSeconds(Math.round(v.duration || 0));
+      URL.revokeObjectURL(url);
+    };
+    v.src = url;
+    // shrani kot data-URL (da preživi in gre lahko naprej)
+    const reader = new FileReader();
+    reader.onload = () => setOwnVideo(String(reader.result || ""));
+    reader.readAsDataURL(file);
+  }
+
+  async function suggestText() {
+    const secs = ownSeconds || (duration === "10" ? 10 : 5);
+    setSuggesting(true);
+    let context = "";
+    try {
+      const raw = localStorage.getItem(CONCEPT_KEY);
+      if (raw) context = JSON.parse(raw)?.concept || "";
+    } catch {}
+    try {
+      const text = await suggestCopyForDuration(secs, context, settings.model, settings.proxyPath);
+      setSuggested(text);
+    } catch (err: any) {
+      setError(err.message || "Predloga besedila ni uspela.");
+    } finally {
+      setSuggesting(false);
+    }
+  }
 
   // Prelivanje iz stopnje Slike je zdaj na zahtevo (gumb), da ne pretepe
   // ročno vpisanih/ohranjenih prizorov ob vsakem odprtju zavihka.
@@ -118,6 +162,44 @@ export default function VideoStage({ onStatus }: { onStatus: (s: StageStatus) =>
 
       {error && <div className="vstatus vstatus--err" style={{ maxWidth: 920 }}>{error}</div>}
 
+      <div className="card" style={{ maxWidth: 920, marginTop: 4 }}>
+        <div className="card__title">Lasten video in besedilo po dolžini</div>
+        <div className="btnrow" style={{ marginTop: 6 }}>
+          <label className="btn btn--ghost btn--file">
+            Naloži svoj video
+            <input
+              type="file"
+              accept="video/*"
+              hidden
+              onChange={(e) => e.target.files?.[0] && onPickVideo(e.target.files[0])}
+            />
+          </label>
+          {ownSeconds > 0 && <span className="pill">dolžina: {ownSeconds} s</span>}
+          <button className="btn btn--sol" onClick={suggestText} disabled={suggesting}>
+            {suggesting ? "Predlagam …" : "Predlagaj besedilo za dolžino"}
+          </button>
+        </div>
+        {ownVideo && (
+          <div style={{ marginTop: 10 }}>
+            <video controls src={ownVideo} style={{ maxWidth: "100%", borderRadius: 8 }} />
+          </div>
+        )}
+        {suggested && (
+          <div className="copy-card" style={{ marginTop: 10 }}>
+            <div className="copy-card__head">
+              <span className="lang-chip lang-chip--on">predlog ({ownSeconds || (duration === "10" ? 10 : 5)} s)</span>
+              <button
+                className="btn btn--ghost"
+                onClick={() => navigator.clipboard.writeText(suggested).catch(() => {})}
+              >
+                Kopiraj
+              </button>
+            </div>
+            <pre className="copy-card__text">{suggested}</pre>
+          </div>
+        )}
+      </div>
+
       <div className="scenes">
         {scenes.map((sc, i) => {
           const res = sceneResult(i);
@@ -157,7 +239,17 @@ export default function VideoStage({ onStatus }: { onStatus: (s: StageStatus) =>
                   {res.status === "pending" ? "generiram …" : res.status === "done" ? "gotovo" : "napaka"}
                 </span>
               )}
-              {res?.videoUrl && <video controls src={res.videoUrl} />}
+              {res?.videoUrl && (
+                <>
+                  <video controls src={res.videoUrl} />
+                  <button
+                    className="btn btn--ghost"
+                    onClick={() => downloadRemote(res.videoUrl!, `video-prizor-${i + 1}.mp4`)}
+                  >
+                    Prenesi
+                  </button>
+                </>
+              )}
               {res?.error && <div className="vstatus vstatus--err">{res.error}</div>}
 
               {scenes.length > 1 && !rendering && (

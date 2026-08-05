@@ -4,6 +4,7 @@ import { useState } from "react";
 import { transcribeAudio, TranscriptSegment } from "@/lib/api";
 import { useSettings } from "@/components/SettingsProvider";
 import { usePersistentState } from "@/lib/usePersistentState";
+import { buildSrt, downloadText } from "@/lib/download";
 import { StageStatus } from "@/lib/stages";
 import { VOICE_AUDIO_KEY } from "@/components/stages/VoiceStage";
 
@@ -140,6 +141,13 @@ export default function SubtitleStage({ onStatus }: { onStatus: (s: StageStatus)
         </button>
         <button className="btn btn--ghost" onClick={save} disabled={busy}>
           Shrani za Montažo
+        </button>
+        <button
+          className="btn btn--ghost"
+          onClick={() => downloadText(buildSrt(lines), "podnapisi.srt")}
+          disabled={busy || lines.length === 0}
+        >
+          Prenesi .srt
         </button>
       </div>
 

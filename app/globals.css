@@ -525,3 +525,16 @@ audio { margin-top: 12px; width: 100%; }
   width: 48px;
   cursor: pointer;
 }
+
+/* ---- prenos / nalaganje gumbi ---- */
+.card-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.btn--file {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
