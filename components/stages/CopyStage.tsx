@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { generateCopy } from "@/lib/api";
 import { useSettings, Lang } from "@/components/SettingsProvider";
+import { usePersistentState } from "@/lib/usePersistentState";
 import { StageStatus } from "@/lib/stages";
 import { CONCEPT_KEY } from "@/components/stages/ConceptStage";
 
@@ -37,10 +38,10 @@ function readConcept(): string {
 
 export default function CopyStage({ onStatus }: { onStatus: (s: StageStatus) => void }) {
   const { settings } = useSettings();
-  const [product, setProduct] = useState("");
-  const [tone, setTone] = useState("energično, prijazno, brez pretiravanja");
-  const [useConcept, setUseConcept] = useState(true);
-  const [results, setResults] = useState<Result[]>([]);
+  const [product, setProduct] = usePersistentState("copy_product", "");
+  const [tone, setTone] = usePersistentState("copy_tone", "energično, prijazno, brez pretiravanja");
+  const [useConcept, setUseConcept] = usePersistentState("copy_useConcept", true);
+  const [results, setResults] = usePersistentState<Result[]>("copy_results", []);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [handed, setHanded] = useState<Lang | null>(null);

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { generateImage } from "@/lib/api";
 import { useSettings } from "@/components/SettingsProvider";
+import { usePersistentState } from "@/lib/usePersistentState";
 import { StageStatus } from "@/lib/stages";
 
 // Slike, ki jih Video stopnja prebere kot prizore (data-URL-i).
@@ -23,7 +24,7 @@ const EMPTY: SceneImg[] = [
 
 export default function ImageStage({ onStatus }: { onStatus: (s: StageStatus) => void }) {
   const { settings } = useSettings();
-  const [scenes, setScenes] = useState<SceneImg[]>(EMPTY);
+  const [scenes, setScenes] = usePersistentState<SceneImg[]>("images_scenes", EMPTY);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 

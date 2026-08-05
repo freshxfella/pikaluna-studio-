@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { generateCopy } from "@/lib/api";
 import { useSettings } from "@/components/SettingsProvider";
+import { usePersistentState } from "@/lib/usePersistentState";
 import { StageStatus } from "@/lib/stages";
 
 // Koncept se shrani, da ga Besedilo in Overlay lahko uporabita kot kontekst.
@@ -22,10 +23,10 @@ const FOCI = [
 
 export default function ConceptStage({ onStatus }: { onStatus: (s: StageStatus) => void }) {
   const { settings } = useSettings();
-  const [product, setProduct] = useState("");
-  const [selected, setSelected] = useState<string[]>([]);
-  const [extra, setExtra] = useState("");
-  const [result, setResult] = useState("");
+  const [product, setProduct] = usePersistentState("concept_product", "");
+  const [selected, setSelected] = usePersistentState<string[]>("concept_foci", []);
+  const [extra, setExtra] = usePersistentState("concept_extra", "");
+  const [result, setResult] = usePersistentState("concept_result", "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 

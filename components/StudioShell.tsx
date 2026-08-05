@@ -4,6 +4,7 @@ import { useState } from "react";
 import { SettingsProvider } from "@/components/SettingsProvider";
 import PipelineRail from "@/components/PipelineRail";
 import SettingsDrawer from "@/components/SettingsDrawer";
+import LangBar from "@/components/LangBar";
 import Placeholder from "@/components/stages/Placeholder";
 import ConceptStage from "@/components/stages/ConceptStage";
 import CopyStage from "@/components/stages/CopyStage";
@@ -56,6 +57,7 @@ export default function StudioShell() {
             </span>
           </div>
           <div className="topbar__spacer" />
+          <LangBar />
           <span className="project-tag">projekt · neimenovan</span>
           <button className="icon-btn" aria-label="Nastavitve" onClick={() => setSettingsOpen(true)}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">

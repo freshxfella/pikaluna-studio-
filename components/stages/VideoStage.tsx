@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { startRender, pollRender, RenderJob } from "@/lib/api";
 import { StageStatus } from "@/lib/stages";
+import { usePersistentState } from "@/lib/usePersistentState";
 import { IMAGES_KEY } from "@/components/stages/ImageStage";
+import { useRef } from "react";
 
 interface SceneInput {
   imageUrl: string;
@@ -17,24 +19,33 @@ const EMPTY_SCENES: SceneInput[] = [
 ];
 
 export default function VideoStage({ onStatus }: { onStatus: (s: StageStatus) => void }) {
-  const [scenes, setScenes] = useState<SceneInput[]>(EMPTY_SCENES);
-  const [duration, setDuration] = useState<"5" | "10">("5");
+  const [scenes, setScenes] = usePersistentState<SceneInput[]>("video_scenes", EMPTY_SCENES);
+  const [duration, setDuration] = usePersistentState<"5" | "10">("video_duration", "5");
   const [rendering, setRendering] = useState(false);
   const [job, setJob] = useState<RenderJob | null>(null);
   const [error, setError] = useState("");
   const jobIdRef = useRef<string>("");
 
-  // Prelivanje iz stopnje Slike: ob odprtju napolni prizore z generiranimi slikami.
-  useEffect(() => {
+  // Prelivanje iz stopnje Slike je zdaj na zahtevo (gumb), da ne pretepe
+  // ročno vpisanih/ohranjenih prizorov ob vsakem odprtju zavihka.
+  function loadFromImages() {
     try {
       const raw = localStorage.getItem(IMAGES_KEY);
-      if (!raw) return;
+      if (!raw) {
+        setError("V Slikah še ni generiranih prizorov.");
+        return;
+      }
       const handed = JSON.parse(raw) as { imageUrl: string; prompt: string }[];
       if (Array.isArray(handed) && handed.length) {
         setScenes(handed.map((h) => ({ imageUrl: h.imageUrl || "", prompt: h.prompt || "" })));
+        setError("");
+      } else {
+        setError("V Slikah še ni generiranih prizorov.");
       }
-    } catch {}
-  }, []);
+    } catch {
+      setError("Prizorov iz Slik ni bilo mogoče naložiti.");
+    }
+  }
 
   const setScene = (i: number, patch: Partial<SceneInput>) =>
     setScenes((s) => s.map((sc, idx) => (idx === i ? { ...sc, ...patch } : sc)));
@@ -89,6 +100,9 @@ export default function VideoStage({ onStatus }: { onStatus: (s: StageStatus) =>
             <option value="10">10 sekund</option>
           </select>
         </div>
+        <button className="btn btn--ghost" onClick={loadFromImages} disabled={rendering}>
+          Naloži iz Slik
+        </button>
         <button className="btn btn--ghost" onClick={addScene} disabled={rendering}>
           + prizor
         </button>

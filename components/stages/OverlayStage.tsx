@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { StageStatus } from "@/lib/stages";
+import { usePersistentState } from "@/lib/usePersistentState";
 import { CONCEPT_KEY } from "@/components/stages/ConceptStage";
 
 // Overlay elementi se shranijo; Montaža jih kasneje pošlje Creatomatu
@@ -72,7 +73,9 @@ function hasConcept(): boolean {
 }
 
 export default function OverlayStage({ onStatus }: { onStatus: (s: StageStatus) => void }) {
-  const [items, setItems] = useState<OverlayItem[]>([newItem({ text: "-65%", blink: true })]);
+  const [items, setItems] = usePersistentState<OverlayItem[]>("overlay_items", [
+    newItem({ text: "-65%", blink: true }),
+  ]);
   const [saved, setSaved] = useState(false);
 
   const patch = (id: string, p: Partial<OverlayItem>) =>
