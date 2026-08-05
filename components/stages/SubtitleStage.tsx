@@ -8,26 +8,13 @@ import { buildSrt, downloadText } from "@/lib/download";
 import StageActions from "@/components/StageActions";
 import { StageStatus } from "@/lib/stages";
 import { VOICE_AUDIO_KEY, VOICE_SPOKEN_TEXT_KEY } from "@/components/stages/VoiceStage";
+import { TextStyle, DEFAULT_TEXT_STYLE, StyleControls } from "@/components/StyleControls";
 
 // Podnapisi se shranijo; Montaža jih pošlje Creatomatu (tekst + časi + slog).
 export const SUBS_KEY = "pikaluna_studio_subtitles";
 
 // Nabori za začetek. Vsaka izbira mora obstajati tudi v Creatomate predlogi,
 // sicer render ne uveljavi sloga.
-const FONTS = ["Space Grotesk", "IBM Plex Sans", "Inter", "Montserrat", "Poppins", "Oswald"];
-const EFFECTS = [
-  { id: "none", label: "brez" },
-  { id: "box", label: "obarvana podlaga" },
-  { id: "outline", label: "obroba" },
-  { id: "shadow", label: "senca" },
-];
-const ANIMATIONS = [
-  { id: "none", label: "brez" },
-  { id: "fade", label: "zatemnitev (fade)" },
-  { id: "slide-up", label: "zdrs navzgor" },
-  { id: "pop", label: "pop (skok)" },
-  { id: "typewriter", label: "pisalni stroj" },
-];
 const POSITIONS = [
   { id: "bottom", label: "spodaj" },
   { id: "center", label: "sredina" },
@@ -40,22 +27,12 @@ interface SubLine {
   text: string;
 }
 
-interface SubStyle {
-  font: string;
-  size: number;
-  effect: string;
-  animation: string;
-  position: string;
-  color: string;
-}
+// Podnapisi uporabijo skupni slog + položaj (specifičen za podnapise).
+type SubStyle = TextStyle & { position: string };
 
 const DEFAULT_STYLE: SubStyle = {
-  font: "Space Grotesk",
-  size: 42,
-  effect: "box",
-  animation: "fade",
+  ...DEFAULT_TEXT_STYLE,
   position: "bottom",
-  color: "#ffffff",
 };
 
 function fmt(t: number): string {
@@ -268,41 +245,8 @@ export default function SubtitleStage({ onStatus }: { onStatus: (s: StageStatus)
       {/* Slog podnapisov */}
       <div className="card" style={{ maxWidth: 920, marginTop: 8 }}>
         <div className="card__title">Slog</div>
-        <div className="style-grid">
-          <label className="mini-field">
-            <span>Font</span>
-            <select className="select" value={style.font} onChange={(e) => patchStyle({ font: e.target.value })}>
-              {FONTS.map((f) => (
-                <option key={f} value={f}>{f}</option>
-              ))}
-            </select>
-          </label>
-          <label className="mini-field">
-            <span>Velikost</span>
-            <input
-              className="input input--mini"
-              type="number"
-              min={12}
-              value={style.size}
-              onChange={(e) => patchStyle({ size: Number(e.target.value) })}
-            />
-          </label>
-          <label className="mini-field">
-            <span>Efekt</span>
-            <select className="select" value={style.effect} onChange={(e) => patchStyle({ effect: e.target.value })}>
-              {EFFECTS.map((x) => (
-                <option key={x.id} value={x.id}>{x.label}</option>
-              ))}
-            </select>
-          </label>
-          <label className="mini-field">
-            <span>Animacija</span>
-            <select className="select" value={style.animation} onChange={(e) => patchStyle({ animation: e.target.value })}>
-              {ANIMATIONS.map((x) => (
-                <option key={x.id} value={x.id}>{x.label}</option>
-              ))}
-            </select>
-          </label>
+        <StyleControls style={style} onChange={patchStyle} />
+        <div className="style-grid" style={{ marginTop: 10 }}>
           <label className="mini-field">
             <span>Položaj</span>
             <select className="select" value={style.position} onChange={(e) => patchStyle({ position: e.target.value })}>
@@ -310,15 +254,6 @@ export default function SubtitleStage({ onStatus }: { onStatus: (s: StageStatus)
                 <option key={x.id} value={x.id}>{x.label}</option>
               ))}
             </select>
-          </label>
-          <label className="mini-field">
-            <span>Barva</span>
-            <input
-              className="input input--mini"
-              type="color"
-              value={style.color}
-              onChange={(e) => patchStyle({ color: e.target.value })}
-            />
           </label>
         </div>
       </div>

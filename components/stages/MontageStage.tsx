@@ -5,6 +5,7 @@ import { startMontage, pollMontage, MontageJob, uploadAudioToBlob } from "@/lib/
 import { useSettings } from "@/components/SettingsProvider";
 import { usePersistentState } from "@/lib/usePersistentState";
 import { downloadRemote } from "@/lib/download";
+import { styleToCreatomate } from "@/components/StyleControls";
 import { StageStatus } from "@/lib/stages";
 
 const VOICE_AUDIO_KEY = "pikaluna_studio_voice_audio";
@@ -26,6 +27,18 @@ interface OverlayItem {
   blink: boolean;
 }
 
+function readOverlay(): { items: OverlayItem[]; style?: any } {
+  try {
+    const raw = localStorage.getItem(OVERLAY_KEY);
+    if (!raw) return { items: [] };
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return { items: parsed }; // stara oblika
+    return { items: parsed.items || [], style: parsed.style };
+  } catch {
+    return { items: [] };
+  }
+}
+
 function readJSON<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(key);
@@ -38,6 +51,7 @@ function readJSON<T>(key: string, fallback: T): T {
 // Zgradi Creatomate "Subtitles.elements" iz vrstic s časi (pot B: vsaka
 // vrstica svoj tekstovni element s svojim časom).
 function buildSubtitleElements(lines: SubLine[], style: any) {
+  const styled = style ? styleToCreatomate(style as any) : {};
   return lines
     .filter((l) => l.text.trim())
     .map((l) => ({
@@ -51,17 +65,7 @@ function buildSubtitleElements(lines: SubLine[], style: any) {
       x_alignment: "50%",
       y_alignment: "50%",
       text: l.text.trim(),
-      font_family: style?.font || "Space Grotesk",
-      font_weight: "700",
-      font_size: (style?.size ? Math.round(style.size / 6) : 7) + " vmin",
-      fill_color: style?.color || "#ffffff",
-      background_color: style?.effect === "box" ? "#000000cc" : undefined,
-      stroke_color: style?.effect === "outline" ? "#000000" : undefined,
-      stroke_width: style?.effect === "outline" ? "0.4 vmin" : undefined,
-      animations:
-        style?.animation && style.animation !== "none"
-          ? [{ type: style.animation === "slide-up" ? "slide" : style.animation, duration: 0.3, time: "start" }]
-          : undefined,
+      ...styled,
     }));
 }
 
@@ -104,7 +108,7 @@ export default function MontageStage({ onStatus }: { onStatus: (s: StageStatus) 
 
   function summary() {
     const subs = readJSON<{ lines: SubLine[]; style: any }>(SUBS_KEY, { lines: [], style: {} });
-    const overlay = readJSON<OverlayItem[]>(OVERLAY_KEY, []);
+    const overlay = readOverlay().items;
     return { subLines: subs.lines?.length || 0, overlays: overlay.length };
   }
 
@@ -120,7 +124,7 @@ export default function MontageStage({ onStatus }: { onStatus: (s: StageStatus) 
 
     // Sestavi modifications iz zbranih podatkov.
     const subs = readJSON<{ lines: SubLine[]; style: any }>(SUBS_KEY, { lines: [], style: {} });
-    const overlay = readJSON<OverlayItem[]>(OVERLAY_KEY, []);
+    const overlay = readOverlay().items;
     const firstBadge = overlay.find((o) => o.kind === "badge");
 
     const modifications: Record<string, unknown> = {

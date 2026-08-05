@@ -4,6 +4,7 @@ import { useState } from "react";
 import { StageStatus } from "@/lib/stages";
 import { usePersistentState } from "@/lib/usePersistentState";
 import StageActions from "@/components/StageActions";
+import { TextStyle, DEFAULT_TEXT_STYLE, StyleControls } from "@/components/StyleControls";
 import { CONCEPT_KEY } from "@/components/stages/ConceptStage";
 
 // Overlay elementi se shranijo; Montaža jih kasneje pošlje Creatomatu
@@ -77,7 +78,10 @@ export default function OverlayStage({ onStatus }: { onStatus: (s: StageStatus) 
   const [items, setItems] = usePersistentState<OverlayItem[]>("overlay_items", [
     newItem({ text: "-65%", blink: true }),
   ]);
+  const [style, setStyle] = usePersistentState<TextStyle>("overlay_style", DEFAULT_TEXT_STYLE);
   const [saved, setSaved] = useState(false);
+
+  const patchStyle = (p: Partial<TextStyle>) => setStyle((s) => ({ ...s, ...p }));
 
   const patch = (id: string, p: Partial<OverlayItem>) =>
     setItems((list) => list.map((it) => (it.id === id ? { ...it, ...p } : it)));
@@ -92,7 +96,7 @@ export default function OverlayStage({ onStatus }: { onStatus: (s: StageStatus) 
   function save() {
     const clean = items.filter((it) => it.text.trim());
     try {
-      localStorage.setItem(OVERLAY_KEY, JSON.stringify(clean));
+      localStorage.setItem(OVERLAY_KEY, JSON.stringify({ items: clean, style }));
       setSaved(true);
       onStatus(clean.length ? "done" : "empty");
     } catch {}
@@ -139,6 +143,11 @@ export default function OverlayStage({ onStatus }: { onStatus: (s: StageStatus) 
           Namig: “-65%” ali naslov lahko predlagam iz Koncepta/Besedila, če ju najprej ustvariš.
         </div>
       )}
+
+      <div className="card" style={{ maxWidth: 920, marginTop: 8 }}>
+        <div className="card__title">Slog (velja za vse elemente)</div>
+        <StyleControls style={style} onChange={patchStyle} />
+      </div>
 
       <div className="overlay-list">
         {items.map((it) => (
