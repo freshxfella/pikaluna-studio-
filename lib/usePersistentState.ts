@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { saveValue, loadValue } from "@/lib/persistStore";
 
 // Kot useState, a stanje preživi menjavo zavihka in osvežitev strani.
-// Hrani se v localStorage pod danim ključem. Komponente se ob menjavi
-// zavihka odmontirajo (unmount), zato bi navaden useState pozabil vnos —
-// ta hook to reši.
+// Velike vrednosti (slike, avdio) gredo v IndexedDB, majhne v localStorage —
+// zato slike ne prepolnijo localStorage in ne pobrišejo ostalega stanja.
 export function usePersistentState<T>(
   key: string,
   initial: T
@@ -13,26 +13,32 @@ export function usePersistentState<T>(
   const [value, setValue] = useState<T>(initial);
   const loaded = useRef(false);
 
-  // hidracija po mountu (izognemo se SSR mismatchu)
+  // hidracija po mountu
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(key);
-      if (raw !== null) setValue(JSON.parse(raw) as T);
-    } catch {
-      /* ignore */
-    }
-    loaded.current = true;
+    let alive = true;
+    loadValue(key)
+      .then((raw) => {
+        if (alive && raw !== null) {
+          try {
+            setValue(JSON.parse(raw) as T);
+          } catch {
+            /* ignore */
+          }
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        loaded.current = true;
+      });
+    return () => {
+      alive = false;
+    };
   }, [key]);
 
-  // shranjevanje ob vsaki spremembi (šele po prvi hidraciji, da ne prepišemo
-  // shranjenega z začetno vrednostjo)
+  // shranjevanje ob spremembi (po hidraciji)
   useEffect(() => {
     if (!loaded.current) return;
-    try {
-      localStorage.setItem(key, JSON.stringify(value));
-    } catch {
-      /* ignore */
-    }
+    saveValue(key, JSON.stringify(value)).catch(() => {});
   }, [key, value]);
 
   return [value, setValue];

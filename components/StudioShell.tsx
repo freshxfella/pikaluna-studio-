@@ -29,27 +29,33 @@ export default function StudioShell() {
   const activeStage = STAGES.find((s) => s.id === active)!;
   const activeIndex = STAGES.findIndex((s) => s.id === active);
 
-  function renderStage() {
-    switch (active) {
-      case "concept":
-        return <ConceptStage onStatus={(s) => setStageStatus("concept", s)} />;
-      case "copy":
-        return <CopyStage onStatus={(s) => setStageStatus("copy", s)} />;
-      case "images":
-        return <ImageStage onStatus={(s) => setStageStatus("images", s)} />;
-      case "voice":
-        return <VoiceStage onStatus={(s) => setStageStatus("voice", s)} />;
-      case "video":
-        return <VideoStage onStatus={(s) => setStageStatus("video", s)} />;
-      case "montage":
-        return <MontageStage onStatus={(s) => setStageStatus("montage", s)} />;
-      case "subtitles":
-        return <SubtitleStage onStatus={(s) => setStageStatus("subtitles", s)} />;
-      case "overlay":
-        return <OverlayStage onStatus={(s) => setStageStatus("overlay", s)} />;
-      default:
-        return <Placeholder stage={activeStage} index={activeIndex} />;
-    }
+  // Vse stopnje ostanejo montirane; neaktivne skrijemo z display:none.
+  // Tako se generiranje (slike, video) ne prekine ob menjavi zavihka.
+  const STAGE_COMPONENTS: Partial<Record<StageId, React.ReactNode>> = {
+    concept: <ConceptStage onStatus={(s) => setStageStatus("concept", s)} />,
+    copy: <CopyStage onStatus={(s) => setStageStatus("copy", s)} />,
+    images: <ImageStage onStatus={(s) => setStageStatus("images", s)} />,
+    voice: <VoiceStage onStatus={(s) => setStageStatus("voice", s)} />,
+    video: <VideoStage onStatus={(s) => setStageStatus("video", s)} />,
+    montage: <MontageStage onStatus={(s) => setStageStatus("montage", s)} />,
+    subtitles: <SubtitleStage onStatus={(s) => setStageStatus("subtitles", s)} />,
+    overlay: <OverlayStage onStatus={(s) => setStageStatus("overlay", s)} />,
+  };
+
+  function renderStages() {
+    return (
+      <>
+        {STAGES.map((st) => {
+          const comp = STAGE_COMPONENTS[st.id];
+          const isActive = st.id === active;
+          return (
+            <div key={st.id} style={{ display: isActive ? "block" : "none" }}>
+              {comp ?? (isActive ? <Placeholder stage={activeStage} index={activeIndex} /> : null)}
+            </div>
+          );
+        })}
+      </>
+    );
   }
 
   return (
@@ -75,7 +81,7 @@ export default function StudioShell() {
 
         <div className="app-body">
           <PipelineRail active={active} statuses={statuses} onSelect={setActive} />
-          <main>{renderStage()}</main>
+          <main>{renderStages()}</main>
         </div>
 
         {settingsOpen && <SettingsDrawer onClose={() => setSettingsOpen(false)} />}
