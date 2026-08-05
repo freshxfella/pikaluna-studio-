@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { startMontage, pollMontage, MontageJob } from "@/lib/api";
+import { startMontage, pollMontage, MontageJob, uploadAudioToBlob } from "@/lib/api";
 import { useSettings } from "@/components/SettingsProvider";
 import { usePersistentState } from "@/lib/usePersistentState";
 import { downloadRemote } from "@/lib/download";
 import { StageStatus } from "@/lib/stages";
+
+const VOICE_AUDIO_KEY = "pikaluna_studio_voice_audio";
 
 const SUBS_KEY = "pikaluna_studio_subtitles";
 const OVERLAY_KEY = "pikaluna_studio_overlay";
@@ -68,12 +70,37 @@ export default function MontageStage({ onStatus }: { onStatus: (s: StageStatus) 
   const [videoUrl, setVideoUrl] = usePersistentState("montage_video_url", "");
   const [title, setTitle] = usePersistentState("montage_title", "");
   const [badge, setBadge] = usePersistentState("montage_badge", "-65%");
+  const [voiceUrl, setVoiceUrl] = usePersistentState("montage_voice_url", "");
+  const [uploadingVoice, setUploadingVoice] = useState(false);
   const [job, setJob] = useState<MontageJob | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ text: string; kind: "" | "ok" | "err" }>({
     text: "Vpiši video URL in poženi montažo. Podnapisi in overlay se povlečejo samodejno.",
     kind: "",
   });
+
+  // Vzame glas iz Glasu (data-URL), ga naloži v Blob, shrani javni URL.
+  async function loadVoiceFromStage() {
+    let audio = "";
+    try {
+      audio = localStorage.getItem(VOICE_AUDIO_KEY) || "";
+    } catch {}
+    if (!audio) {
+      setMsg({ text: "V Glasu še ni generiranega govora.", kind: "err" });
+      return;
+    }
+    setUploadingVoice(true);
+    setMsg({ text: "Nalagam glas …", kind: "" });
+    try {
+      const url = await uploadAudioToBlob(audio);
+      setVoiceUrl(url);
+      setMsg({ text: "Glas naložen in pripravljen za montažo.", kind: "ok" });
+    } catch (err: any) {
+      setMsg({ text: err.message || "Nalaganje glasu ni uspelo.", kind: "err" });
+    } finally {
+      setUploadingVoice(false);
+    }
+  }
 
   function summary() {
     const subs = readJSON<{ lines: SubLine[]; style: any }>(SUBS_KEY, { lines: [], style: {} });
@@ -101,6 +128,10 @@ export default function MontageStage({ onStatus }: { onStatus: (s: StageStatus) 
       Title: title.trim() || " ",
       Badge: (firstBadge?.text || badge || "").trim() || " ",
     };
+    // Glas (če je naložen v Blob) — vključi kot Voiceover.
+    if (voiceUrl.trim()) {
+      modifications["Voiceover"] = voiceUrl.trim();
+    }
     // Podnapisi (pot B): zamenjaj vsebino kompozicije Subtitles.
     if (subs.lines?.length) {
       modifications["Subtitles.elements"] = buildSubtitleElements(subs.lines, subs.style);
@@ -167,6 +198,23 @@ export default function MontageStage({ onStatus }: { onStatus: (s: StageStatus) 
           className="input"
           value={badge}
           onChange={(e) => setBadge(e.target.value)}
+          disabled={busy}
+        />
+      </div>
+
+      <div className="field" style={{ maxWidth: 720 }}>
+        <label className="field__label">Glas (voiceover)</label>
+        <div className="btnrow" style={{ marginBottom: 6 }}>
+          <button className="btn btn--ghost" onClick={loadVoiceFromStage} disabled={uploadingVoice || busy}>
+            {uploadingVoice ? "Nalagam glas …" : "Naloži glas iz Glasu"}
+          </button>
+          {voiceUrl && <span className="pill pill--done">glas pripravljen ✓</span>}
+        </div>
+        <input
+          className="input"
+          placeholder="ali prilepi javni URL glasu"
+          value={voiceUrl}
+          onChange={(e) => setVoiceUrl(e.target.value)}
           disabled={busy}
         />
       </div>

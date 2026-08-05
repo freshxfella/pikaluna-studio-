@@ -143,6 +143,22 @@ export async function refineText(
   return generateCopy(prompt, model, proxyPath);
 }
 
+/* ---------- nalaganje glasu v Vercel Blob (javni URL) ---------- */
+
+// Sprejme data-URL glasu, ga naloži v Blob in vrne javni URL za Creatomate.
+export async function uploadAudioToBlob(dataUrl: string): Promise<string> {
+  const res = await fetch("/api/upload-audio", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ dataUrl }),
+  });
+  const data = await res.json();
+  if (!res.ok || !data?.url) {
+    throw new Error(data?.error || "Nalaganje glasu ni uspelo.");
+  }
+  return data.url as string;
+}
+
 /* ---------- montaža (Creatomate) ---------- */
 
 export interface MontageJob {
