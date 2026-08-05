@@ -67,6 +67,41 @@ export async function generateImage(
   return `data:image/png;base64,${data.image_base64}`;
 }
 
+/* ---------- transkripcija (Whisper prek proxyja) ---------- */
+
+export interface TranscriptSegment {
+  start: number;
+  end: number;
+  text: string;
+}
+
+// Sprejme data-URL (data:audio/...;base64,XXX) ali gol base64 + mime.
+// Vrne segmente s časi za podnapise.
+export async function transcribeAudio(
+  dataUrlOrB64: string,
+  proxyPath?: string,
+  language?: string
+): Promise<TranscriptSegment[]> {
+  let audio_base64 = dataUrlOrB64;
+  let mime = "audio/mpeg";
+  const m = dataUrlOrB64.match(/^data:([^;]+);base64,(.*)$/);
+  if (m) {
+    mime = m[1];
+    audio_base64 = m[2];
+  }
+  const data = await callProxy<any>(
+    "openai_transcribe",
+    { audio_base64, mime, language },
+    proxyPath
+  );
+  const segs = Array.isArray(data?.segments) ? data.segments : [];
+  return segs.map((s: any) => ({
+    start: Number(s.start) || 0,
+    end: Number(s.end) || 0,
+    text: String(s.text || "").trim(),
+  }));
+}
+
 /* ---------- async video pipeline (Kling via fal) ---------- */
 
 export interface RenderScene {

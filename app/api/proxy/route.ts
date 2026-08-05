@@ -79,6 +79,37 @@ export async function POST(request: Request) {
         return json({ image_base64: b64 }, 200);
       }
 
+      /* ---------- OPENAI: transkripcija govora (Whisper) ----------
+         payload = { audio_base64, mime, language? }. Vrne segmente s časi,
+         iz katerih Podnapisi zgradijo vrstice. */
+      case "openai_transcribe": {
+        if (!OPENAI_KEY) return manjkaKljuc("OpenAI");
+        const { audio_base64, mime, language } = payload;
+        if (!audio_base64) {
+          return json({ error: { message: "Manjka zvočni posnetek za transkripcijo." } }, 400);
+        }
+        const zvok = Buffer.from(String(audio_base64), "base64");
+        const pripona = priponaZaMime(mime);
+        const oblika = new FormData();
+        oblika.append("model", "whisper-1");
+        oblika.append(
+          "file",
+          new Blob([zvok], { type: mime || "audio/mpeg" }),
+          "govor." + pripona
+        );
+        // segmentni časi
+        oblika.append("response_format", "verbose_json");
+        oblika.append("timestamp_granularities[]", "segment");
+        if (language) oblika.append("language", String(language));
+
+        const r = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+          method: "POST",
+          headers: { Authorization: "Bearer " + OPENAI_KEY },
+          body: oblika,
+        });
+        return posljiNaprej(r);
+      }
+
       /* ---------- ANTHROPIC / CLAUDE (rezerva) ---------- */
       case "anthropic": {
         if (!ANTHROPIC_KEY) return manjkaKljuc("Anthropic");

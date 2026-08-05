@@ -6,6 +6,9 @@ import { useSettings } from "@/components/SettingsProvider";
 import { StageStatus } from "@/lib/stages";
 import { VOICE_TEXT_KEY } from "@/components/stages/CopyStage";
 
+// Zadnji generirani govor (data-URL mp3) — Podnapisi ga transkribirajo.
+export const VOICE_AUDIO_KEY = "pikaluna_studio_voice_audio";
+
 /* ---- voice tuning prefs (ported from loadVoicePrefs/voiceSettings) ---- */
 interface VoicePrefs {
   model: string;
@@ -159,6 +162,10 @@ export default function VoiceStage({ onStatus }: { onStatus: (s: StageStatus) =>
     try {
       const url = await speak(text.trim(), vid);
       setSpeechUrl(url);
+      // Shrani zadnji govor, da ga Podnapisi lahko transkribirajo (Whisper).
+      try {
+        localStorage.setItem(VOICE_AUDIO_KEY, url);
+      } catch {}
       setGenMsg({ text: "Govor pripravljen.", kind: "ok" });
     } catch (err: any) {
       setGenMsg({ text: err.message, kind: "err" });

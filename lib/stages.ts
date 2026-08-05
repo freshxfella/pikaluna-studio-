@@ -5,6 +5,7 @@ export type StageId =
   | "copy"
   | "voice"
   | "montage"
+  | "subtitles"
   | "overlay";
 export type StageStatus = "empty" | "busy" | "done";
 
@@ -62,6 +63,13 @@ export const STAGES: StageDef[] = [
     blurb: "Sestavi prizore in glas v končni oglas (Creatomate).",
     ready: false,
     buildStep: 5,
+  },
+  {
+    id: "subtitles",
+    label: "Podnapisi",
+    blurb: "Samodejni podnapisi iz voiceoverja (Whisper) — font, efekt, animacija.",
+    ready: true,
+    buildStep: 6,
   },
   {
     id: "overlay",
