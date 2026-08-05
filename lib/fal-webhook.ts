@@ -72,7 +72,15 @@ export async function verifyFalWebhook(
         false,
         ["verify"]
       );
-      if (await crypto.subtle.verify("Ed25519", publicKey, sig, message)) return true;
+      if (
+        await crypto.subtle.verify(
+          "Ed25519",
+          publicKey,
+          sig as unknown as BufferSource,
+          message as unknown as BufferSource
+        )
+      )
+        return true;
     } catch {
       // try next key
     }
