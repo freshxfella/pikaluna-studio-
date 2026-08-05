@@ -123,6 +123,47 @@ export async function suggestCopyForDuration(
   return generateCopy(prompt, model, proxyPath);
 }
 
+/* ---------- montaža (Creatomate) ---------- */
+
+export interface MontageJob {
+  id: string;
+  status: string; // planned | waiting | transcribing | rendering | succeeded | failed
+  url?: string;
+}
+
+// Sproži render. modifications = {"Video": url, "Title": text, "Badge": text,
+// "Subtitles.elements": [...]}. Vrne prvi render (Creatomate vrne polje).
+export async function startMontage(
+  modifications: Record<string, unknown>,
+  proxyPath?: string
+): Promise<MontageJob> {
+  const data = await callProxy<any>("creatomate_render", { modifications }, proxyPath);
+  const first = Array.isArray(data) ? data[0] : data;
+  if (!first?.id) throw new Error("Creatomate ni vrnil ID renderja.");
+  return { id: first.id, status: first.status || "planned", url: first.url };
+}
+
+export async function getMontageStatus(id: string, proxyPath?: string): Promise<MontageJob> {
+  const data = await callProxy<any>("creatomate_status", { id }, proxyPath);
+  const j = Array.isArray(data) ? data[0] : data;
+  return { id: j.id, status: j.status, url: j.url };
+}
+
+// Polla dokler render ni končan (succeeded/failed). Kliče onUpdate ob vsakem koraku.
+export async function pollMontage(
+  id: string,
+  onUpdate: (j: MontageJob) => void,
+  proxyPath?: string
+): Promise<MontageJob> {
+  for (let i = 0; i < 120; i++) {
+    const j = await getMontageStatus(id, proxyPath);
+    onUpdate(j);
+    if (j.status === "succeeded" || j.status === "failed") return j;
+    await new Promise((r) => setTimeout(r, 3000));
+  }
+  throw new Error("Render traja predolgo (časovna omejitev).");
+}
+
 /* ---------- async video pipeline (Kling via fal) ---------- */
 
 export interface RenderScene {

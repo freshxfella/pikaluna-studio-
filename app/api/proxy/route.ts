@@ -12,6 +12,8 @@ export const dynamic = "force-dynamic";
 const OPENAI_KEY = process.env.OPENAI_API_KEY ?? process.env.OPENAI_KEY ?? "";
 const ELEVENLABS_KEY = process.env.ELEVENLABS_KEY ?? "";
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY ?? process.env.ANTHROPIC_KEY ?? "";
+const CREATOMATE_KEY = process.env.CREATOMATE_KEY ?? "";
+const CREATOMATE_TEMPLATE_ID = process.env.CREATOMATE_TEMPLATE_ID ?? "";
 
 // Preserves Pikaluna's documented smoke test:
 // open /api/proxy in a browser -> {"error":{"message":"Uporabi metodo POST."}}
@@ -107,6 +109,49 @@ export async function POST(request: Request) {
           headers: { Authorization: "Bearer " + OPENAI_KEY },
           body: oblika,
         });
+        return posljiNaprej(r);
+      }
+
+      /* ---------- CREATOMATE: montaža (render videa iz predloge) ----------
+         payload = { modifications: {...} }. Doda template_id in ključ na
+         strežniku. Render je asinhron; vrne se seznam z id + status. */
+      case "creatomate_render": {
+        if (!CREATOMATE_KEY) return manjkaKljuc("Creatomate");
+        if (!CREATOMATE_TEMPLATE_ID) {
+          return json(
+            {
+              error: {
+                message:
+                  "Manjka CREATOMATE_TEMPLATE_ID. Dodaj ga v Vercel → Settings → Environment Variables.",
+              },
+            },
+            500
+          );
+        }
+        const r = await fetch("https://api.creatomate.com/v2/renders", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + CREATOMATE_KEY,
+          },
+          body: JSON.stringify({
+            template_id: CREATOMATE_TEMPLATE_ID,
+            modifications: payload.modifications || {},
+          }),
+        });
+        return posljiNaprej(r);
+      }
+
+      /* ---------- CREATOMATE: stanje renderja ----------
+         payload = { id }. Vrne status posameznega renderja (za polling). */
+      case "creatomate_status": {
+        if (!CREATOMATE_KEY) return manjkaKljuc("Creatomate");
+        const id = payload.id;
+        if (!id) return json({ error: { message: "Manjka id renderja." } }, 400);
+        const r = await fetch(
+          "https://api.creatomate.com/v2/renders/" + encodeURIComponent(String(id)),
+          { headers: { Authorization: "Bearer " + CREATOMATE_KEY } }
+        );
         return posljiNaprej(r);
       }
 

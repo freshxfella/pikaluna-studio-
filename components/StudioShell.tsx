@@ -11,6 +11,7 @@ import CopyStage from "@/components/stages/CopyStage";
 import ImageStage from "@/components/stages/ImageStage";
 import VoiceStage from "@/components/stages/VoiceStage";
 import VideoStage from "@/components/stages/VideoStage";
+import MontageStage from "@/components/stages/MontageStage";
 import SubtitleStage from "@/components/stages/SubtitleStage";
 import OverlayStage from "@/components/stages/OverlayStage";
 import { STAGES, StageId, StageStatus } from "@/lib/stages";
@@ -40,6 +41,8 @@ export default function StudioShell() {
         return <VoiceStage onStatus={(s) => setStageStatus("voice", s)} />;
       case "video":
         return <VideoStage onStatus={(s) => setStageStatus("video", s)} />;
+      case "montage":
+        return <MontageStage onStatus={(s) => setStageStatus("montage", s)} />;
       case "subtitles":
         return <SubtitleStage onStatus={(s) => setStageStatus("subtitles", s)} />;
       case "overlay":

@@ -61,7 +61,7 @@ export const STAGES: StageDef[] = [
     id: "montage",
     label: "Montaža",
     blurb: "Sestavi prizore in glas v končni oglas (Creatomate).",
-    ready: false,
+    ready: true,
     buildStep: 5,
   },
   {
