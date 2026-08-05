@@ -95,7 +95,18 @@ export default function SubtitleStage({ onStatus }: { onStatus: (s: StageStatus)
     setMsg({ text: "Transkribiram govor …", kind: "" });
     onStatus("busy");
     try {
-      const lang = settings.languages[0]?.toLowerCase();
+      // Tvoje kode (SI/CZ/HU/SK/EN) niso Whisper jezikovne kode.
+      // SI je koda DRŽAVE; jezik slovenščine je "sl". Preslikamo pravilno.
+      // Če jezika ni v preslikavi, ga ne pošljemo — Whisper sam zazna jezik.
+      const WHISPER_LANG: Record<string, string> = {
+        SI: "sl",
+        CZ: "cs",
+        HU: "hu",
+        SK: "sk",
+        EN: "en",
+      };
+      const code = settings.languages[0];
+      const lang = code ? WHISPER_LANG[code] : undefined;
       const segs: TranscriptSegment[] = await transcribeAudio(audio, settings.proxyPath, lang);
       if (!segs.length) {
         setMsg({ text: "Transkripcija ni vrnila segmentov.", kind: "err" });

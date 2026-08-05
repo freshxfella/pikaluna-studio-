@@ -5,16 +5,6 @@ import { put } from "@vercel/blob";
 // ga naloži v Vercel Blob (javno) in vrne javni URL, ki ga Creatomate doseže.
 export async function POST(request: Request) {
   try {
-    if (!process.env.BLOB_READ_WRITE_TOKEN && !process.env.BLOB_STORE_ID) {
-      return NextResponse.json(
-        {
-          error:
-            "Vercel Blob ni nastavljen. V Vercelu ustvari Blob store (Storage → Create → Blob).",
-        },
-        { status: 500 }
-      );
-    }
-
     const body = await request.json();
     const dataUrl: string = body?.dataUrl || "";
     if (!dataUrl) {

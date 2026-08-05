@@ -104,11 +104,28 @@ export async function POST(request: Request) {
         oblika.append("timestamp_granularities[]", "segment");
         if (language) oblika.append("language", String(language));
 
-        const r = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+        let r = await fetch("https://api.openai.com/v1/audio/transcriptions", {
           method: "POST",
           headers: { Authorization: "Bearer " + OPENAI_KEY },
           body: oblika,
         });
+        // Če Whisper zavrne jezik, poskusi še enkrat brez jezika (samodejna zaznava).
+        if (!r.ok && language) {
+          const oblika2 = new FormData();
+          oblika2.append("model", "whisper-1");
+          oblika2.append(
+            "file",
+            new Blob([zvok], { type: mime || "audio/mpeg" }),
+            "govor." + pripona
+          );
+          oblika2.append("response_format", "verbose_json");
+          oblika2.append("timestamp_granularities[]", "segment");
+          r = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+            method: "POST",
+            headers: { Authorization: "Bearer " + OPENAI_KEY },
+            body: oblika2,
+          });
+        }
         return posljiNaprej(r);
       }
 
