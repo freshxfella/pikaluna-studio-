@@ -143,6 +143,52 @@ export async function refineText(
   return generateCopy(prompt, model, proxyPath);
 }
 
+/* ---------- analiza fotografije produkta (Claude vision) ---------- */
+
+// Sprejme data-URL slike, jo pošlje Claudu in vrne opis kroja/materiala/detajlov.
+export async function analyzeProductPhoto(
+  dataUrl: string,
+  proxyPath?: string
+): Promise<string> {
+  let media_type = "image/jpeg";
+  let data = dataUrl;
+  const m = dataUrl.match(/^data:([^;]+);base64,(.*)$/);
+  if (m) {
+    media_type = m[1];
+    data = m[2];
+  }
+  const payload = {
+    model: "claude-sonnet-4-6",
+    max_tokens: 500,
+    messages: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "image",
+            source: { type: "base64", media_type, data },
+          },
+          {
+            type: "text",
+            text:
+              "You are helping build an image-generation prompt for a women's activewear product. " +
+              "Describe ONLY the garment in this photo: cut/silhouette, material and drape, color, " +
+              "and notable construction details (waistband, seams, pockets, sleeves, closures, wrap, etc.). " +
+              "Be concise and factual, no marketing language. Output a short comma-separated description.",
+          },
+        ],
+      },
+    ],
+  };
+  const res = await callProxy<any>("anthropic", payload, proxyPath);
+  const parts = (res?.content || [])
+    .filter((c: any) => c.type === "text")
+    .map((c: any) => c.text);
+  const text = parts.join(" ").trim();
+  if (!text) throw new Error("Analiza fotografije ni vrnila opisa.");
+  return text;
+}
+
 /* ---------- nalaganje glasu v Vercel Blob (javni URL) ---------- */
 
 // Sprejme data-URL glasu, ga naloži v Blob in vrne javni URL za Creatomate.
